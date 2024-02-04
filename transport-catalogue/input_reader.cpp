@@ -140,4 +140,4 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
 
 }
 
-}
+} // namespace transport

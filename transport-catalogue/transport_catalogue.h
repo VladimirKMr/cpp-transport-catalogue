@@ -43,7 +43,7 @@ namespace transport {
 			uint64_t first_hash = hasher_(stop_pair.first);
 			uint64_t second_hash = hasher_(stop_pair.second);
 
-			return first_hash * 37 + second_hash * (37 * 38);
+			return first_hash * 37 + second_hash * (38 * 38);
 		}
 	};
 	

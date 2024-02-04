@@ -40,4 +40,4 @@ private:
     std::vector<CommandDescription> commands_;
 };
 
-}
+} // namespace transport
