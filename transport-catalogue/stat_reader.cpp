@@ -8,7 +8,8 @@ void PrintBusInfo(const std::optional<BusInfo>& bus_info, std::string_view reque
     if (bus_info.has_value()) {
         BusInfo info = *bus_info; 
         output << "Bus " << info.bus_name << ": " << info.stops << " stops on route, " 
-            << info.uniq_stops << " unique stops, " << info.route_length << " route length" << std::endl;
+            << info.uniq_stops << " unique stops, " << info.route_length << " route length, " 
+            << info.curvature << " curvature" << std::endl;
     } else {
         output << "Bus " << request_id << ": not found" << std::endl;
     }
@@ -57,6 +58,16 @@ void ParseAndPrintStat(const TransportCatalogue& transport_catalogue, std::strin
         PrintStopInfo(transport_catalogue.GetBusesForStop(request_id), request_id, output);
     } else {
         output << "Error. Unknown command." << std::endl;
+    }
+}
+
+void ReadRequestToInfo(std::istream& input, const TransportCatalogue& catalogue, std::ostream& output) {
+    int stat_request_count;
+    input >> stat_request_count >> std::ws;
+    for (int i = 0; i < stat_request_count; ++i) {
+        std::string line;
+        getline(input, line);
+        ParseAndPrintStat(catalogue, line, output);
     }
 }
 

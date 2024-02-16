@@ -27,7 +27,8 @@ namespace transport {
 		std::string_view bus_name;
 		size_t stops = 0;
 		size_t uniq_stops = 0;
-		double route_length = 0;
+		double route_length = 0;  // фактическая длина маршрута в метрах
+		double curvature = 0;  // извилистость, отношение фактической длины маршрута к географическому расстоянию
 	};
 
 	struct StopInfo {
@@ -54,6 +55,10 @@ namespace transport {
 
 		void AddStop(Stop&& stop);
 
+		void AddStopPairDistances(const Stop* from, const Stop* to, size_t distance);
+
+		[[nodiscard]] std::optional<size_t> GetStopPairDistances(const Stop* from, const Stop* to) const;
+
 		[[nodiscard]] const Bus* FindBus(std::string_view name_bus) const;
 
 		[[nodiscard]] const Stop* FindStop(std::string_view name_stop) const;
@@ -62,17 +67,23 @@ namespace transport {
 
 		[[nodiscard]] std::optional<StopInfo> GetBusesForStop(std::string_view stop_name) const;
 
+
 	private:
 		std::deque<Stop> stops_;
-		std::unordered_map<std::string_view, const Stop*> stopname_to_stop_;
-		std::deque<Bus> buses_;
-		std::unordered_map<std::string_view, const Bus*> busname_to_bus_;
-		std::unordered_map<std::string_view, std::set<std::string_view>> buses_for_stop_;
-		std::unordered_map<std::pair<const Stop*, const Stop*>, size_t, StopPairHasher> distances_pair_stops_; // пока не нужен
+		std::unordered_map<std::string_view, const Stop*> stopname_to_stop_;  // остановки с именами
 
-		static double ComputeRouteLength(const Bus* bus);
+		std::deque<Bus> buses_;
+		std::unordered_map<std::string_view, const Bus*> busname_to_bus_;  // автобусы с именами
+
+		std::unordered_map<std::string_view, std::set<std::string_view>> buses_for_stop_;  // список автобусов на остановке
+
+		std::unordered_map<std::pair<const Stop*, const Stop*>, size_t, StopPairHasher> stop_pair_distances_;  // список расстояний между парой остановок
+
+		static double ComputeGeoRouteLength(const Bus* bus);
 
 		static size_t GetUniqStops(std::vector<const Stop*> stops);
+
+		size_t ComputeLinearRouteLength(const Bus* bus) const;
 	};
 
 } // namespace transport

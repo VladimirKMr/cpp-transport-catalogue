@@ -1,5 +1,6 @@
 #pragma once
 #include <iomanip>
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,6 +36,14 @@ public:
      * Наполняет данными транспортный справочник, используя команды из commands_
      */
     void ApplyCommands(TransportCatalogue& catalogue) const;
+
+    /*
+       Парсит запрос с расстояниями, для добавления расстояний между остановками 
+    */
+    void ParseStopDistances(const CommandDescription& command, TransportCatalogue& catalogue) const;
+
+    // Для чтения запроса из созданного потока
+    void ReadRequestToAdd(std::istream& input);
 
 private:
     std::vector<CommandDescription> commands_;

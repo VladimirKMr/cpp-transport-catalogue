@@ -34,14 +34,13 @@ namespace transport {
         return nullptr;
     }
 
-	double TransportCatalogue::ComputeRouteLength(const Bus* bus) {
+	double TransportCatalogue::ComputeGeoRouteLength(const Bus* bus) {
 
 		if (!bus) {
 			return 0;
 		}
 
 		double route_length = 0;
-
 		const auto& route = bus->route;
 
 		for (size_t i = 1; i < route.size(); ++i) {
@@ -56,13 +55,58 @@ namespace transport {
 		return route_length;
 	}
 
+	size_t TransportCatalogue::ComputeLinearRouteLength(const Bus* bus) const {
+
+		if (!bus) {
+			return 0;
+		}
+
+		size_t route_length = 0;
+		const auto& route = bus->route;
+
+		for (size_t i = 1; i < route.size(); ++i) {
+			const auto& from_stop = route[i - 1];
+			const auto& to_stop = route[i];
+			
+			size_t distance = 0;
+
+			if (GetStopPairDistances(from_stop, to_stop).has_value()) {
+				distance = GetStopPairDistances(from_stop, to_stop).value();
+			}
+			
+			route_length += distance;
+		}
+
+		return route_length;
+	}
+
     size_t TransportCatalogue::GetUniqStops(std::vector<const Stop*> stops) {
         std::sort(stops.begin(), stops.end(), [](const Stop* lhs, const Stop* rhs) { return lhs->name < rhs->name;});
 		auto last = std::unique(stops.begin(), stops.end(), [](const Stop* lhs, const Stop* rhs) { return lhs->name == rhs->name; });
 		return static_cast<size_t>(std::distance(stops.begin(),last));
-    }    
+    }
 
-    std::optional<BusInfo> TransportCatalogue::GetBusInfo(std::string_view name_bus) const {
+	void TransportCatalogue::AddStopPairDistances(const Stop* from, const Stop* to, size_t distance) {
+		stop_pair_distances_[std::make_pair(from,to)] = distance;
+	}
+
+	std::optional<size_t> TransportCatalogue::GetStopPairDistances(const Stop* from, const Stop* to) const {
+		auto pair_stops = std::make_pair(from, to);
+
+		if (stop_pair_distances_.count(pair_stops)) {
+			return stop_pair_distances_.at(pair_stops);
+		}
+
+		std::swap(pair_stops.first, pair_stops.second);
+
+		if (!stop_pair_distances_.count(pair_stops)) {
+			return std::nullopt;
+		}
+
+		return stop_pair_distances_.at(pair_stops);
+	}
+
+	std::optional<BusInfo> TransportCatalogue::GetBusInfo(std::string_view name_bus) const {
 
 		auto it = busname_to_bus_.find(name_bus);
 
@@ -72,7 +116,8 @@ namespace transport {
 			bus_info.bus_name = bus.name;
 			bus_info.stops = bus.route.size();
 			bus_info.uniq_stops = GetUniqStops(bus.route);
-			bus_info.route_length = ComputeRouteLength(&bus);
+			bus_info.route_length = static_cast<double>(ComputeLinearRouteLength(&bus));
+			bus_info.curvature = bus_info.route_length / ComputeGeoRouteLength(&bus);
 			return bus_info;
 		} else {
 			return std::nullopt;

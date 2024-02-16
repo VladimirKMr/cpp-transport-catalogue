@@ -11,21 +11,20 @@ namespace transport {
  * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
  */
 Coordinates ParseCoordinates(std::string_view str) {
-    std::setprecision(6);
-
     static const double nan = std::nan("");
 
     auto not_space = str.find_first_not_of(' ');
-    auto comma = str.find(',');
+    auto comma = str.find_first_of(',');
 
     if (comma == str.npos) {
         return {nan, nan};
     }
 
     auto not_space2 = str.find_first_not_of(' ', comma + 1);
+    auto comma2 = str.find_first_of(',', not_space2);
 
     double lat = std::stod(std::string(str.substr(not_space, comma - not_space)));
-    double lng = std::stod(std::string(str.substr(not_space2)));
+    double lng = std::stod(std::string(str.substr(not_space2, comma2 - not_space2)));
 
     return {lat, lng};
 }
@@ -79,6 +78,10 @@ std::vector<std::string_view> ParseRoute(std::string_view route) {
     return results;
 }
 
+
+/*
+  Парсит команду в структуру CommandDescription
+*/
 CommandDescription ParseCommandDescription(std::string_view line) {
     auto colon_pos = line.find(':');
     if (colon_pos == line.npos) {
@@ -107,8 +110,45 @@ void InputReader::ParseLine(std::string_view line) {
     }
 }
 
+/*
+  Парсит дистанции до остановки Stop от остановок #stop, для заполнения индекса stop_pair_distances_
+*/
+void InputReader::ParseStopDistances(const CommandDescription& command, TransportCatalogue& catalogue) const {
+    std::istringstream iss(command.description);
+
+    // Пропускаем координаты
+    std::string coord;
+    for (int i = 0; i < 2; ++i) {
+        std::getline(iss, coord, ',');
+    }
+
+    // Начинаем парсить расстояния
+    std::string distances_part;
+    while (std::getline(iss, distances_part, ',')) {
+        std::istringstream distances_stream(distances_part);
+        int distance;
+        distances_stream >> distance;
+
+        // Пропускаем m и to (между расстоянием и названием остановки)
+        distances_stream.ignore(std::numeric_limits<std::streamsize>::max(), 'm');
+        distances_stream.ignore(std::numeric_limits<std::streamsize>::max(), 't');
+        distances_stream.ignore(std::numeric_limits<std::streamsize>::max(), 'o');
+
+        // Добавляем имя остановки (до запятой)
+        std::string stop_name;
+        std::getline(distances_stream >> std::ws, stop_name, ',');
+
+        // Удаляем пробелы
+        stop_name.erase(stop_name.find_last_not_of(" \n\r\t") + 1);
+
+        // Заполняем контейнер
+        catalogue.AddStopPairDistances(std::move(catalogue.FindStop(command.id)), std::move(catalogue.FindStop(stop_name)), static_cast<size_t>(distance));
+    }
+}
+
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
 
+    // Первый проход - добавление остановок с координатами
     for (auto& command : commands_) {
         if (command.command == "Stop") {
             Stop stop;
@@ -119,6 +159,14 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
         
     }
 
+    // Второй проход - добавление расстояний между парами остановок
+    for (auto& command : commands_) {
+        if (command.command == "Stop") {
+            ParseStopDistances(command, catalogue);
+        }
+    }
+
+    // Добавление автобуса
     for (auto& command : commands_) {
         if (command.command == "Bus") {
             Bus bus;
@@ -138,6 +186,16 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
         }
     }
 
+}
+
+void InputReader::ReadRequestToAdd(std::istream& input) {
+    int base_request_count;
+    input >> base_request_count >> std::ws;
+    for (int i = 0; i < base_request_count; ++i) {
+        std::string line;
+        getline(input, line);
+        this->ParseLine(line);
+    }
 }
 
 } // namespace transport
