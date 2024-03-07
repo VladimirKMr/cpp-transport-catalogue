@@ -15,10 +15,8 @@ namespace transport {
 		{
 		}
 
-		// Возвращает информацию о маршруте (запрос Bus)
 		std::optional<domain::BusInfo> GetBusInfo(const std::string_view& bus_name) const;
 
-		// Возвращает маршруты, проходящие через
 		std::optional<domain::StopInfo> GetBusesByStop(const std::string_view& stop_name) const;
 
 		svg::Document RenderMap() const;

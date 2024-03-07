@@ -6,13 +6,10 @@
 #include "request_handler.h"
 #include "transport_catalogue.h"
 
-//using namespace std;
-
 
 int main() {
     
     /*
-    //Для чтения из файла
 
     std::ifstream input_file("input000.json");
     if (!input_file.is_open()) {

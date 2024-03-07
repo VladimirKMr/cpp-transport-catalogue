@@ -16,10 +16,8 @@ namespace json_reader {
 		{
 		}
 
-		// ќбработка запросов к каталогу через RequestHandler
 		void ResponseRequests(std::ostream& os, const transport::RequestHandler& rq) const;
 
-		// «аполнение транспортного каталога из Json
 		transport::TransportCatalogue TransportCatalogueFromJson() const;
 
 		renderer::RenderSettings ParseRenderSettings() const;

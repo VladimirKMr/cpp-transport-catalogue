@@ -24,14 +24,14 @@ namespace domain {
 		std::string_view bus_name;
 		size_t stops = 0;
 		size_t uniq_stops = 0;
-		size_t request_id = 0;  // номер запроса
-		double route_length = 0;  // фактическая длина маршрута в метрах
-		double curvature = 0;  // извилистость, отношение фактической длины маршрута к географическому расстоянию
+		size_t request_id = 0;  
+		double route_length = 0;  
+		double curvature = 0;  
 	};
 
 	struct StopInfo {
-		size_t request_id;  // номер запроса
-		std::set<std::string_view> buses;  // список маршрутов
+		size_t request_id;  
+		std::set<std::string_view> buses;  
 	};
 
 	struct StopPairHasher {

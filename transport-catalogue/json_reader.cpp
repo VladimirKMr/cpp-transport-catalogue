@@ -8,7 +8,6 @@ using namespace std::string_view_literals;
 
 namespace json_reader {
 
-    // вспомогательный метод для вывода маршрутов по запросу Stop, в формате json
     json::Dict JsonReader::StopResponseToJsonDict(int request_id, const std::optional<domain::StopInfo>& stop_info) const {
         json::Dict result;
         if (stop_info) {
@@ -25,7 +24,6 @@ namespace json_reader {
         return result;
     }
 
-    // вспомогательный метод для вывода информации о маршруте по запросу Bus, в формате json
     json::Dict JsonReader::BusResponseToJsonDict(int request_id, const std::optional<domain::BusInfo>& bus_info) const {
         json::Dict result;
         if (bus_info) {
@@ -41,7 +39,6 @@ namespace json_reader {
         return result;
     }
 
-    // вспомогательный метод для вывода svg рендера по запросу Map
     json::Dict JsonReader::MapResponseToJsonDict(int request_id, const svg::Document& render_doc) const {
         json::Dict result;
 
@@ -55,7 +52,6 @@ namespace json_reader {
         return result;
     }
 
-    // обработка запросов к каталогу и вывод информации с помощью вспомогательных методов конвертации в json
     void JsonReader::ResponseRequests(std::ostream& os, const transport::RequestHandler& rq) const {
         json::Array responses;
 
@@ -78,7 +74,6 @@ namespace json_reader {
         json::Print(result, os);
     }
 
-    // вспомогательный метод для заполнения каталога, забирает информацию об остановке
     Stop JsonReader::ParseStopQuery(const json::Node& type_stop) const {
         const auto& type_stop_map = type_stop.AsMap();
         return Stop{ type_stop_map.at("name"s).AsString(),
@@ -86,7 +81,6 @@ namespace json_reader {
                                          type_stop_map.at("longitude"s).AsDouble()} };
     }
 
-    // вспомогательный метод для заполнения каталога, забирает информацию о дистанциях между остановками
     void JsonReader::ParseStopQueryDistance(transport::TransportCatalogue& ts, const json::Node& type_stop) const {
         const auto& type_stop_map = type_stop.AsMap();
         for (const auto& [to_stop, dist_to_stop] : type_stop_map.at("road_distances"s).AsMap()) {
@@ -96,7 +90,6 @@ namespace json_reader {
 
     }
 
-    // вспомогательный метод для заполнения каталога, добавляет остановки в маршрут в соответствии с флагом is_roundtrip (кольцевой или нет)
     Bus JsonReader::ParseBusQuery(const transport::TransportCatalogue& ts, const json::Node& node_bus) const {
         const auto& node_bus_map = node_bus.AsMap();
         Bus bus;
@@ -104,25 +97,20 @@ namespace json_reader {
         bus.name = node_bus_map.at("name"s).AsString();
         const auto& stops = node_bus_map.at("stops").AsArray();
 
-        // маршрут в прямом направлении
         for (const auto& stop : stops) {
             bus.route.push_back(ts.FindStop(stop.AsString()));
         }
 
-        // если маршрут не кольцевой
         if (!bus.is_roundtrip) {
-            // Добавляем остановки в обратном направлении
             for (size_t i = stops.size() - 1; i > 1; --i) {
                 bus.route.push_back(ts.FindStop(stops[i - 1].AsString()));
             }
-            // Добавляем первую остановку
             bus.route.push_back(ts.FindStop(stops[0].AsString()));
         }
 
         return bus;
     }
 
-    // с помощью вспомогательных методов заполняем транспортный каталог из json
     transport::TransportCatalogue JsonReader::TransportCatalogueFromJson() const {
         transport::TransportCatalogue ts;
         for (const auto& request : json_document_.GetRoot().AsMap().at("base_requests"s).AsArray()) {
@@ -150,7 +138,6 @@ namespace json_reader {
 
         const auto rs_map = json_document_.GetRoot().AsMap().at("render_settings"s).AsMap();
 
-        // парсинг из json в структуру RenderSettings
         rs.width = rs_map.at("width"s).AsDouble();
         rs.height = rs_map.at("height"s).AsDouble();
 
