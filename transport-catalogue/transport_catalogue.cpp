@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <string_view>
-#include <vector>
 
 #include "transport_catalogue.h"
 
@@ -47,7 +46,7 @@ namespace transport {
 			const auto& from_stop = route[i - 1];
 			const auto& to_stop = route[i];
 			
-			double distance = ComputeDistance(from_stop->coordinates, to_stop->coordinates);
+			double distance = geo::ComputeDistance(from_stop->coordinates, to_stop->coordinates);
 			
 			route_length += distance;
 		}
@@ -79,12 +78,6 @@ namespace transport {
 
 		return route_length;
 	}
-
-    size_t TransportCatalogue::GetUniqStops(std::vector<const Stop*> stops) {
-        std::sort(stops.begin(), stops.end(), [](const Stop* lhs, const Stop* rhs) { return lhs->name < rhs->name;});
-		auto last = std::unique(stops.begin(), stops.end(), [](const Stop* lhs, const Stop* rhs) { return lhs->name == rhs->name; });
-		return static_cast<size_t>(std::distance(stops.begin(),last));
-    }
 
 	void TransportCatalogue::AddStopPairDistances(const Stop* from, const Stop* to, size_t distance) {
 		stop_pair_distances_[std::make_pair(from,to)] = distance;
@@ -137,4 +130,18 @@ namespace transport {
 		}
 	}
 
-} // namespace transport
+	const std::deque<const Stop*> TransportCatalogue::BusesForStop() const {
+		std::deque<const Stop*> stops_with_buses;
+		
+		for (const auto& [stop_name, bus_set] : buses_for_stop_) {
+			if (!bus_set.empty()) {
+				stops_with_buses.push_back(FindStop(stop_name));
+			}
+		}
+		std::sort(stops_with_buses.begin(), stops_with_buses.end(), [](const domain::Stop* lhs, const domain::Stop* rhs) {
+			return lhs->name < rhs->name;
+			});
+		return stops_with_buses;
+	}
+
+} // namespace transport 

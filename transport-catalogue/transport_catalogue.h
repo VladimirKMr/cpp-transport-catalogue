@@ -1,52 +1,15 @@
 #pragma once
 
 #include <deque>
-#include <iomanip>
 #include <optional>
-#include <set>
-#include <string>
-#include <string_view>
 #include <unordered_map>
-#include <vector>
 
 #include "geo.h"
+#include "domain.h"
+
+using namespace domain;
 
 namespace transport {
-
-	struct Stop {
-		std::string name;
-		Coordinates coordinates;
-	};
-
-	struct Bus {
-		std::string name;
-		std::vector<const Stop*> route;
-	};
-
-	struct BusInfo {
-		std::string_view bus_name;
-		size_t stops = 0;
-		size_t uniq_stops = 0;
-		double route_length = 0;  // фактическая длина маршрута в метрах
-		double curvature = 0;  // извилистость, отношение фактической длины маршрута к географическому расстоянию
-	};
-
-	struct StopInfo {
-		std::set<std::string_view> buses;
-	};
-
-	struct StopPairHasher {
-	private:
-		std::hash<const void*> hasher_;
-
-	public:
-		uint64_t operator()(const std::pair<const Stop*, const Stop*>& stop_pair) const {
-			uint64_t first_hash = hasher_(stop_pair.first);
-			uint64_t second_hash = hasher_(stop_pair.second);
-
-			return first_hash * 37 + second_hash * (38 * 38);
-		}
-	};
 	
 	class TransportCatalogue {
 
@@ -67,6 +30,15 @@ namespace transport {
 
 		[[nodiscard]] std::optional<StopInfo> GetBusesForStop(std::string_view stop_name) const;
 
+		inline const std::deque<domain::Bus>& GetBuses() const {
+			return buses_;
+		}
+
+		inline const std::deque<domain::Stop>& GetStops() const {
+			return stops_;
+		}
+
+		const std::deque<const domain::Stop*> BusesForStop() const;
 
 	private:
 		std::deque<Stop> stops_;
@@ -80,8 +52,6 @@ namespace transport {
 		std::unordered_map<std::pair<const Stop*, const Stop*>, size_t, StopPairHasher> stop_pair_distances_;  // список расстояний между парой остановок
 
 		static double ComputeGeoRouteLength(const Bus* bus);
-
-		static size_t GetUniqStops(std::vector<const Stop*> stops);
 
 		size_t ComputeLinearRouteLength(const Bus* bus) const;
 	};
