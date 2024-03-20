@@ -15,7 +15,7 @@ namespace renderer {
     }
 
 	void MapRenderer::BusRouteRender(svg::Document& render_doc, const domain::Bus& bus, size_t color) const {
-
+		
 		svg::Polyline poly = svg::Polyline()
 			.SetFillColor(svg::NoneColor)
 			.SetStrokeColor(render_settings_.color_palette.at(color))
@@ -23,7 +23,6 @@ namespace renderer {
 			.SetStrokeLineCap(svg::StrokeLineCap::ROUND)
 			.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
 
-		
 		if (bus.is_roundtrip) {
 			for (const auto& elem : bus.route) {
 				poly.AddPoint(sphere_proj_(elem->coordinates));
@@ -67,11 +66,11 @@ namespace renderer {
 
 		auto bus_route_end = bus.route.size() / 2;
 		auto back_stop_it = bus.route.begin() + bus_route_end;
-		if (!bus.is_roundtrip && bus.route.size() > 3 && *bus.route.begin() != *back_stop_it) {  // (A-B-C-B-A)
+		if (!bus.is_roundtrip && bus.route.size() > 3 && *bus.route.begin() != *back_stop_it) {  
 			render_doc.Add(std::move(BusTextRenderSettings(bus.name, *back_stop_it, true)));
 			render_doc.Add(std::move(BusTextRenderSettings(bus.name, *back_stop_it, false, color)));
 		}
-		if (!bus.is_roundtrip && bus.route.size() == 3 && bus.route.front() != *back_stop_it) {  // (A-B-A)
+		if (!bus.is_roundtrip && bus.route.size() == 3 && bus.route.front() != *back_stop_it) {  
 			render_doc.Add(std::move(BusTextRenderSettings(bus.name, *back_stop_it, true)));
 			render_doc.Add(std::move(BusTextRenderSettings(bus.name, *back_stop_it, false, color)));
 		}

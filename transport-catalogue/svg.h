@@ -113,7 +113,6 @@ namespace svg {
         int indent = 0;
     };
 
-
     class Object {
     public:
         void Render(const RenderContext& context) const;
@@ -124,7 +123,6 @@ namespace svg {
         virtual void RenderObject(const RenderContext& context) const = 0;
     };
 
-    
     class ObjectContainer {
     public:
         template<typename Obj>
@@ -137,14 +135,12 @@ namespace svg {
     protected:
         ~ObjectContainer() = default;
     };
-
-    
+   
     class Drawable {
     public:
         virtual void Draw(ObjectContainer& container) const = 0;
         virtual ~Drawable() = default;
     };
-
 
     template <typename Owner>
     class PathProps {
@@ -195,7 +191,6 @@ namespace svg {
 
     private:
         Owner& AsOwner() {
-            
             return static_cast<Owner&>(*this);
         }
 
@@ -206,9 +201,7 @@ namespace svg {
         std::optional<StrokeLineJoin> line_join_;
     };
 
-
     /*
-     * Circle
      * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle
      */
     class Circle final : public Object, public PathProps<Circle> {
@@ -224,7 +217,6 @@ namespace svg {
     };
 
     /*
-     * Polyline
      * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline
      */
     class Polyline : public Object, public PathProps<Polyline> {
@@ -238,17 +230,21 @@ namespace svg {
     };
 
     /*
-     * Text
      * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
      */
     class Text : public Object, public PathProps<Text> {
     public:
         
         Text& SetPosition(Point pos);
+
         Text& SetOffset(Point offset);
+
         Text& SetFontSize(uint32_t size);
+
         Text& SetFontFamily(std::string font_family);
+
         Text& SetFontWeight(std::string font_weight);
+
         Text& SetData(std::string data);
 
     private:

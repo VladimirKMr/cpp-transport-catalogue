@@ -68,13 +68,12 @@ namespace renderer {
         std::vector<svg::Color> color_palette;
     };
 
-
     template <typename PointInputIt>
     SphereProjector::SphereProjector(PointInputIt points_begin, PointInputIt points_end,
                                      double max_width, double max_height, double padding)
         : padding_(padding)
     {
-    
+        
         if (points_begin == points_end) {
             return;
         }
@@ -102,15 +101,12 @@ namespace renderer {
         }
 
         if (width_zoom && height_zoom) {
-            
             zoom_coeff_ = std::min(*width_zoom, *height_zoom);
         }
         else if (width_zoom) {
-            
             zoom_coeff_ = *width_zoom;
         }
         else if (height_zoom) {
-            
             zoom_coeff_ = *height_zoom;
         }
     }
