@@ -22,10 +22,21 @@ namespace transport {
 		{
 			BuildGraph(catalogue);
 		}
-
-		const graph::DirectedWeightedGraph<double>& BuildGraph(const TransportCatalogue& catalogue);
+				
 		const std::optional<graph::Router<double>::RouteInfo> FindRoute(const std::string_view stop_from, const std::string_view stop_to) const;
-		const graph::DirectedWeightedGraph<double>& GetGraph() const;
+
+		const graph::DirectedWeightedGraph<double>& GetGraph() const;  // оставил метод в public, т.к. нужен для RequestHandler и удобного вызова
+		
+	private:
+		void BuildGraph(const TransportCatalogue& catalogue);
+
+		void StopsToGraph(const std::map<std::string_view, const Stop*>& sort_stops,
+						  graph::DirectedWeightedGraph<double>& stops_graph,
+						  std::map<std::string, graph::VertexId>& stop_ids);
+
+		void BusesToGraph(const std::map<std::string_view, const Bus*>& sort_buses,
+						  graph::DirectedWeightedGraph<double>& stops_graph,
+						  const TransportCatalogue& catalogue);
 
 	private:
 		RouterSettings settings_;
