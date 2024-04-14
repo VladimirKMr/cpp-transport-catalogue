@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 #include <istream>
 #include <sstream>
 
 #include "request_handler.h"
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include "json.h"
 
 namespace json_reader {
@@ -16,12 +17,16 @@ namespace json_reader {
 		{
 		}
 
+		// Обработка запросов к каталогу через RequestHandler
 		void ResponseRequests(std::ostream& os, const transport::RequestHandler& rq) const;
 
+		// Заполнение транспортного каталога из Json
 		transport::TransportCatalogue TransportCatalogueFromJson() const;
 
 		renderer::RenderSettings ParseRenderSettings() const;
 		renderer::MapRenderer MapRenderFromJson(const transport::TransportCatalogue& ts) const;
+
+		transport::RouterSettings ParseRoutSettings() const;
 
 	private:
 		std::istream& in_;
@@ -35,6 +40,9 @@ namespace json_reader {
 		json::Dict StopResponseToJsonDict(int request_id, const std::optional<domain::StopInfo>& stop_info) const;
 		json::Dict BusResponseToJsonDict(int request_id, const std::optional<domain::BusInfo>& bus_info) const;
 		json::Dict MapResponseToJsonDict(int request_id, const svg::Document& render_doc) const;
+		json::Dict RouteResponseToJsonDict(int request_id,
+										   const std::optional<graph::Router<double>::RouteInfo>& routing,
+										   const graph::DirectedWeightedGraph<double>& graph) const;
 
 		svg::Color ParseColor(const json::Node& node) const;
 	};

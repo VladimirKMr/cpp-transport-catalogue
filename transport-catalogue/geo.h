@@ -1,10 +1,10 @@
-#pragma once
+﻿#pragma once
 
 namespace geo {
 
     struct Coordinates {
-        double lat;  
-        double lng;  
+        double lat;  // Широта
+        double lng;  // Долгота
 
         bool operator==(const Coordinates& other) const {
             return lat == other.lat && lng == other.lng;

@@ -1,4 +1,4 @@
-#include "json_reader.h"
+﻿#include "json_reader.h"
 #include "transport_catalogue.h"
 #include "geo.h"
 #include "json.h"
@@ -9,6 +9,7 @@ using namespace std::string_view_literals;
 
 namespace json_reader {
 
+    // вспомогательный метод для вывода маршрутов по запросу Stop, в формате json
     json::Dict JsonReader::StopResponseToJsonDict(int request_id, const std::optional<domain::StopInfo>& stop_info) const {
         
         json::Builder stop_build;
@@ -30,6 +31,7 @@ namespace json_reader {
         return stop_build.Build().AsDict();
     }
 
+    // вспомогательный метод для вывода информации о маршруте по запросу Bus, в формате json
     json::Dict JsonReader::BusResponseToJsonDict(int request_id, const std::optional<domain::BusInfo>& bus_info) const {
         
         json::Builder bus_build;
@@ -50,6 +52,7 @@ namespace json_reader {
         return bus_build.Build().AsDict();
     }
 
+    // вспомогательный метод для вывода svg рендера по запросу Map
     json::Dict JsonReader::MapResponseToJsonDict(int request_id, const svg::Document& render_doc) const {
         
         json::Builder map_build;
@@ -66,6 +69,60 @@ namespace json_reader {
         return map_build.Build().AsDict();
     }
 
+    // вспомогательный метод для вывода информации по запросу Route (выбор маршрута)
+    json::Dict JsonReader::RouteResponseToJsonDict(int request_id, 
+                                                   const std::optional<graph::Router<double>::RouteInfo>& routing,
+                                                   const graph::DirectedWeightedGraph<double>& graph) const {
+        json::Builder route_build;
+
+        if (!routing) {
+            route_build.StartDict()
+                       .Key("request_id"s).Value(request_id)
+                       .Key("error_message"s).Value("not found"s)
+                       .EndDict();
+        }
+        else {
+            json::Array arr_route;
+            double time_route = 0.0;
+            arr_route.reserve(routing.value().edges.size());
+
+            for (auto& edge_id : routing.value().edges) {
+                const graph::Edge<double> edge = graph.GetEdge(edge_id);
+
+                if (edge.quality == 0) {
+                    arr_route.emplace_back(json::Node(json::Builder{}
+                             .StartDict()
+                             .Key("stop_name"s).Value(edge.name)
+                             .Key("time"s).Value(edge.weight)
+                             .Key("type"s).Value("Wait"s)
+                             .EndDict().Build()));
+
+                    time_route += edge.weight;
+                }
+                else {
+                    arr_route.emplace_back(json::Node(json::Builder{}
+                             .StartDict()
+                             .Key("bus"s).Value(edge.name)
+                             .Key("span_count"s).Value(static_cast<int>(edge.quality))
+                             .Key("time"s).Value(edge.weight)
+                             .Key("type"s).Value("Bus"s)
+                             .EndDict().Build()));
+
+                    time_route += edge.weight;
+                }
+            }
+
+            route_build.StartDict()
+                       .Key("request_id"s).Value(request_id)
+                       .Key("total_time"s).Value(time_route)
+                       .Key("items"s).Value(arr_route)
+                       .EndDict();
+        }
+        
+        return route_build.Build().AsDict();
+    }
+
+    // обработка запросов к каталогу и вывод информации с помощью вспомогательных методов конвертации в json
     void JsonReader::ResponseRequests(std::ostream& os, const transport::RequestHandler& rq) const {
         
         json::Builder responses;
@@ -88,11 +145,21 @@ namespace json_reader {
             else if (request.AsDict().at("type"s).AsString() == "Map"sv) {
                 responses.Value(MapResponseToJsonDict(request_id, rq.RenderMap()));
             }
+
+            else if (request.AsDict().at("type"s).AsString() == "Route"sv) {
+                const std::string_view stop_from = request.AsDict().at("from"s).AsString();
+                const std::string_view stop_to = request.AsDict().at("to"s).AsString();
+                const auto& routing = rq.GetOptimalRoute(stop_from, stop_to);
+                const auto& route_graph = rq.GetRouterGraph();
+                responses.Value(RouteResponseToJsonDict(request_id, routing, route_graph));
+            }
         }
+
         responses.EndArray();
         json::Print(json::Document(responses.Build()), os);
     }
 
+    // вспомогательный метод для заполнения каталога, забирает информацию об остановке
     Stop JsonReader::ParseStopQuery(const json::Node& type_stop) const {
         const auto& type_stop_map = type_stop.AsDict();
         return Stop{ type_stop_map.at("name"s).AsString(),
@@ -100,6 +167,7 @@ namespace json_reader {
                                          type_stop_map.at("longitude"s).AsDouble()} };
     }
 
+    // вспомогательный метод для заполнения каталога, забирает информацию о дистанциях между остановками
     void JsonReader::ParseStopQueryDistance(transport::TransportCatalogue& ts, const json::Node& type_stop) const {
         const auto& type_stop_map = type_stop.AsDict();
         for (const auto& [to_stop, dist_to_stop] : type_stop_map.at("road_distances"s).AsDict()) {
@@ -109,6 +177,7 @@ namespace json_reader {
 
     }
 
+    // вспомогательный метод для заполнения каталога, добавляет остановки в маршрут в соответствии с флагом is_roundtrip (кольцевой или нет)
     Bus JsonReader::ParseBusQuery(const transport::TransportCatalogue& ts, const json::Node& node_bus) const {
         const auto& node_bus_map = node_bus.AsDict();
         Bus bus;
@@ -116,21 +185,25 @@ namespace json_reader {
         bus.name = node_bus_map.at("name"s).AsString();
         const auto& stops = node_bus_map.at("stops").AsArray();
 
+        // маршрут в прямом направлении
         for (const auto& stop : stops) {
             bus.route.push_back(ts.FindStop(stop.AsString()));
         }
 
+        // если маршрут не кольцевой
         if (!bus.is_roundtrip) {
-            
+            // Добавляем остановки в обратном направлении
             for (size_t i = stops.size() - 1; i > 1; --i) {
                 bus.route.push_back(ts.FindStop(stops[i - 1].AsString()));
             }
+            // Добавляем первую остановку
             bus.route.push_back(ts.FindStop(stops[0].AsString()));
         }
 
         return bus;
     }
 
+    // с помощью вспомогательных методов заполняем транспортный каталог из json
     transport::TransportCatalogue JsonReader::TransportCatalogueFromJson() const {
         transport::TransportCatalogue ts;
         for (const auto& request : json_document_.GetRoot().AsDict().at("base_requests"s).AsArray()) {
@@ -158,6 +231,7 @@ namespace json_reader {
 
         const auto rs_map = json_document_.GetRoot().AsDict().at("render_settings"s).AsDict();
 
+        // парсинг из json в структуру RenderSettings
         rs.width = rs_map.at("width"s).AsDouble();
         rs.height = rs_map.at("height"s).AsDouble();
 
@@ -214,6 +288,17 @@ namespace json_reader {
 
         double alpha = array.at(3).AsDouble();
         return svg::Rgba(red, green, blue, alpha);
+    }
+
+    transport::RouterSettings JsonReader::ParseRoutSettings() const {
+        transport::RouterSettings settings;
+
+        const auto rs_map = json_document_.GetRoot().AsDict().at("routing_settings"s).AsDict();
+
+        settings.bus_wait_time_ = rs_map.at("bus_wait_time"s).AsInt();
+        settings.bus_velocity_ = rs_map.at("bus_velocity"s).AsDouble();
+
+        return settings;
     }
 
 }  // namespace json_reader

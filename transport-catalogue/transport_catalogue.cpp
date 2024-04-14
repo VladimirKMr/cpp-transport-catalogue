@@ -1,4 +1,4 @@
-#include <algorithm>
+﻿#include <algorithm>
 #include <string_view>
 
 #include "transport_catalogue.h"
@@ -142,6 +142,22 @@ namespace transport {
 			return lhs->name < rhs->name;
 			});
 		return stops_with_buses;
+	}
+
+	const std::map<std::string_view, const Bus*> TransportCatalogue::GetSortedBuses() const {
+		std::map<std::string_view, const Bus*> result;
+		for (const auto& bus : busname_to_bus_) {
+			result.emplace(bus);
+		}
+		return result;
+	}
+
+	const std::map<std::string_view, const Stop*> TransportCatalogue::GetSortedStops() const {
+		std::map<std::string_view, const Stop*> result;
+		for (const auto& stop : stopname_to_stop_) {
+			result.emplace(stop);
+		}
+		return result;
 	}
 
 } // namespace transport 

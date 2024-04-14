@@ -3,6 +3,7 @@
 #include <deque>
 #include <optional>
 #include <unordered_map>
+#include <map>
 
 #include "geo.h"
 #include "domain.h"
@@ -30,15 +31,15 @@ namespace transport {
 
 		[[nodiscard]] std::optional<StopInfo> GetBusesForStop(std::string_view stop_name) const;
 
-		inline const std::deque<domain::Bus>& GetBuses() const {
-			return buses_;
-		}
-
-		inline const std::deque<domain::Stop>& GetStops() const {
-			return stops_;
-		}
-
 		const std::deque<const domain::Stop*> BusesForStop() const;
+
+		inline const std::deque<domain::Bus>& GetBuses() const { return buses_; }
+
+		inline const std::deque<domain::Stop>& GetStops() const { return stops_; }
+
+		const std::map<std::string_view, const Bus*> GetSortedBuses() const;
+
+		const std::map<std::string_view, const Stop*> GetSortedStops() const;
 
 	private:
 		std::deque<Stop> stops_;

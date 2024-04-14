@@ -15,4 +15,12 @@ namespace transport {
 		return renderer_.RenderRoutes(db_.GetBuses(), db_.BusesForStop());
 	}
 
+	const std::optional<graph::Router<double>::RouteInfo> RequestHandler::GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const {
+		return router_.FindRoute(stop_from, stop_to);
+	}
+
+	const graph::DirectedWeightedGraph<double>& RequestHandler::GetRouterGraph() const {
+		return router_.GetGraph();
+	}
+
 }  // namespace transport
